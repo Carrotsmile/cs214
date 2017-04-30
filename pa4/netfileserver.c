@@ -69,7 +69,7 @@ int getbindsocket( sock_client * cli, int port)
 	return sockFD;
 }
 
-void netopen(const char * path, int client)
+void netopen(int client)
 {
 
 }
@@ -163,7 +163,7 @@ int main(int argc, char * argv[])
 
 	//initialize the sockets in the array
 	int i;
-	int port_i = 2;
+	int port_i = 2 + PORT;
 	errno = 0;
 	for(i = 0; i < MAX_SOCKETS; i++)
 	{
