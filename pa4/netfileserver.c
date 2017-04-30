@@ -69,7 +69,7 @@ int getbindsocket( sock_client * cli, int port)
 	return sockFD;
 }
 
-void netopen(int client)
+void netopen(const char * path, int client)
 {
 
 }
