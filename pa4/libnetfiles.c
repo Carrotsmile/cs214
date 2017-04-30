@@ -106,25 +106,83 @@ int netopen(const char * pathname, int flags)
 	}
 
 	//set global variables for later connecting
-	mode = flags;
-	hostname_lnf = pathname;
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-
-	struct hostent *server;
-	server = gethostbyname(hostname_lnf);
-
-	if(server == NULL)
+	if(mode == 1)
 	{
 		h_errno = HOST_NOT_FOUND;
-		printf("Host server not found.\n");
-		mode = -1;
+		return -1;
+	}	
+	//mode = flags;
+	//
+	char * fname[256];
+	bzero(fname, 256);
+	
+	sockFD = socket(AF_INET, SOCK_STREAM, 0);
+	if(sockFD < 0)
+	{
+		printf("[%d]%s\n", errno, strerror(errno));
 		return -1;
 	}
 
-	//since the server has been found, copy the name of it to serv_addr
-	bcopy( (char*) server->h_addr, (char*)&serv_addr.sin_addr, server->h_length );
-	return 0;
+	addrLen = sizeof(serv_addr);
+	inet_ntop(AF_INET, &serv_addr.sin_addr, ip, sizeof(ip));
+
+	int error;
+	int err;
+	int t = 1;
+
+	strcpy(fname, pathname);
+
+	int status = connect(sockFD, (struct sockaddr *)&serv_addr, addrLen);
+	if( status < 0 )
+	{
+		errno = ETIMEDOUT;
+		printf("[%d]%s\n", errno, strerror(errno));
+		return -1;
+	}
+
+	int t_sent = send(sockFD, &t, sizeof(t), 0);
+	int mode_sent = send(sockFD, &mode, sizeof(mode), 0);
+	int flags_sent = send(sockFD, &flags, sizeof(flags), 0);
+
+	if(t_sent == -1 || mode_sent == -1 || flags_sent == -1)
+	{
+		printf("sending error.\n");
+		close(sockFD);
+		return -1;
+	}
+
+	int err_bytes = 0;
+	while(err_bytes < sizeof(error))
+	{
+		err_bytes += recv(sockFD, &error, sizeof(error), 0);
+		if(err_bytes == 0)
+		{
+			printf("no errer data\n");
+			close(sockFD);
+			return -1;
+		}
+	}	
+
+	err_bytes = 0;
+	while(err_bytes < sizeof(err))
+	{
+		err_bytes += recv(sockFD, &err, sizeof(err), 0);
+		if(err_bytes == 0)
+		{
+			printf("no urrer data\n");
+			close(sockFD);
+			return -1;
+		}
+	}
+
+	if(error == -1)
+	{
+		errno = err;
+		printf("[%d]%s\n", errno, strerror(errno));
+	}
+	close(sockFD);
+	return error;
+
 }
 
 ssize_t netread(int fildes, void * buf, size_t nbyte)
